@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cgwi-php.fullname" . }}
+  labels:
+    {{- include "cgwi-php.labels" . | nindent 4 }}
+data:
+  {{- toYaml .Values.app_config | nindent 2}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cgwi-php.fullname" . }}-fpm-upstream
+  labels:
+    {{- include "cgwi-php.labels" . | nindent 4 }}
+data:
+  _upstream-fpm.conf: |
+    upstream fpm {
+        server localhost:9000;
+    }

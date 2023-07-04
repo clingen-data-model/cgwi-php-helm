@@ -1,0 +1,212 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "cgwi-php.fullname" . }}-app
+  labels:
+    app: {{ include "cgwi-php.name" . }}
+    {{- include "cgwi-php.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ include "cgwi-php.name" . }}
+      {{- include "cgwi-php.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "cgwi-php.fullname" . }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        app: {{ include "cgwi-php.name" . }}
+        {{- include "cgwi-php.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "cgwi-php.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: clone
+          image: alpine/git
+          command:
+            - sh
+            - -c
+            - |-
+              if [[ ! -d /srv/app/.git ]]; then
+                git clone --single-branch --branch {{ .Values.git.branch }} --depth "1" {{ .Values.git.repository }} /srv/app
+              fi
+          volumeMounts:
+            - name: appdata
+              mountPath: /srv/app
+        - name: composer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - bash
+            - -c
+            - |-
+              cd /srv/app
+              if [[ ! -d vendor ]]; then
+                composer install --no-interaction --no-plugins --no-scripts --prefer-dist --no-dev --no-suggest
+              fi
+              composer dump-autoload
+          volumeMounts:
+            - name: appdata
+              mountPath: /srv/app
+      containers:
+        - name: nginx
+          command:
+            - /usr/sbin/nginx
+            - -g
+            - daemon off;
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - name: appdata
+              mountPath: /srv/app
+            - name: fpm-upstream
+              mountPath: /etc/nginx/conf.d/_upstream-fpm.conf
+              subPath: _upstream-fpm.conf
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        - name: app
+          command:
+            - bash
+            - /srv/app/scripts/entrypoint.sh
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "cgwi-php.fullname" . }}
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-ccdb
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-mysql
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-redis
+          env:
+          - name: DB_DATABASE
+            value: $(MYSQL_DATABASE)
+          - name: DB_USERNAME
+            value: $(MYSQL_USER)
+          - name: DB_PASSWORD
+            value: $(MYSQL_PASSWORD)
+          ports:
+            - name: fpm
+              containerPort: 9000
+              protocol: TCP
+          volumeMounts:
+            - name: appdata
+              mountPath: /srv/app
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        - name: scheduler
+          command:
+            - bash
+            - -c
+            - |-
+              /srv/app/scripts/awaitdb.bash
+              while true
+              do
+                php artisan schedule:run --verbose --no-interaction &
+                sleep 60
+              done
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "cgwi-php.fullname" . }}
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-ccdb
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-mysql
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-redis
+          env:
+          - name: DB_DATABASE
+            value: $(MYSQL_DATABASE)
+          - name: DB_USERNAME
+            value: $(MYSQL_USER)
+          - name: DB_PASSWORD
+            value: $(MYSQL_PASSWORD)
+          volumeMounts:
+            - name: appdata
+              mountPath: /srv/app
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        - name: queue
+          command:
+            - bash
+            - -c
+            - |-
+              echo "role: queue"
+              echo "SESSION_DRIVER: $SESSION_DRIVER"
+              echo "CACHE_DRIVER: $CACHE_DRIVER"
+              echo "QUEUE_CONNECTION: $QUEUE_CONNECTION..."
+              /srv/app/scripts/awaitdb.bash
+              php /srv/app/artisan queue:work --verbose --tries=3 --timeout=90
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "cgwi-php.fullname" . }}
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-ccdb
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-mysql
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-redis
+          env:
+          - name: DB_DATABASE
+            value: $(MYSQL_DATABASE)
+          - name: DB_USERNAME
+            value: $(MYSQL_USER)
+          - name: DB_PASSWORD
+            value: $(MYSQL_PASSWORD)
+          volumeMounts:
+            - name: appdata
+              mountPath: /srv/app
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - name: fpm-upstream
+        configMap:
+          name: {{ include "cgwi-php.fullname" . }}-fpm-upstream
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: appdata
+      spec:
+        accessModes: [ "ReadWriteMany" ]
+        resources:
+          requests:
+            storage: 1Gi
