@@ -81,7 +81,7 @@ tolerations: []
 affinity: {}
 
 secrets:
-  ccdb:
+  app:
     APP_KEY: ""
     BACKPACK_LICENSE: ""
     LOG_SLACK_WEBHOOK_URL: ""
