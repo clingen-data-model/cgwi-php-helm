@@ -4,7 +4,6 @@ metadata:
   name: {{ include "cgwi-php.fullname" . }}-mysql
   labels:
     {{- include "cgwi-php.labels" . | nindent 4 }}
-    app: {{ include "cgwi-php.fullname" . }}-mysql
     component: database
 spec:
   type: {{ .Values.service.type }}
@@ -16,7 +15,6 @@ spec:
       port: 3306
   selector:
     {{- include "cgwi-php.selectorLabels" . | nindent 4 }}
-    app: {{ include "cgwi-php.fullname" . }}-mysql
     component: database
 
 ---
@@ -31,7 +29,6 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: {{ include "cgwi-php.fullname" . }}-mysql
       component: database
       {{- include "cgwi-php.selectorLabels" . | nindent 6 }}
   serviceName: {{ include "cgwi-php.fullname" . }}-mysql
@@ -42,7 +39,6 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        app: {{ include "cgwi-php.fullname" . }}-mysql
         component: database
         {{- include "cgwi-php.selectorLabels" . | nindent 8 }}
     spec:

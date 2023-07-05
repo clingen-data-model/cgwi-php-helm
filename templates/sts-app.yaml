@@ -1,9 +1,29 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cgwi-php.fullname" . }}
+  labels:
+    component: app
+    {{- include "cgwi-php.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    component: app
+    {{- include "cgwi-php.selectorLabels" . | nindent 4 }}
+
+---
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ include "cgwi-php.fullname" . }}-app
   labels:
-    app: {{ include "cgwi-php.name" . }}
+    component: app
     {{- include "cgwi-php.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
@@ -11,7 +31,7 @@ spec:
   {{- end }}
   selector:
     matchLabels:
-      app: {{ include "cgwi-php.name" . }}
+      component: app
       {{- include "cgwi-php.selectorLabels" . | nindent 6 }}
   serviceName: {{ include "cgwi-php.fullname" . }}
   template:
@@ -21,7 +41,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        app: {{ include "cgwi-php.name" . }}
+        component: app
         {{- include "cgwi-php.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
