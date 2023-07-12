@@ -84,7 +84,7 @@ secrets:
   app:
     APP_KEY: ""
     BACKPACK_LICENSE: ""
-    LOG_SLACK_WEBHOOK_URL: ""
+    #LOG_SLACK_WEBHOOK_URL: ""
   mysql:
     DB_CONNECTION: ""
     MYSQL_DATABASE: ""
