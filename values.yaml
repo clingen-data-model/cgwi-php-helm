@@ -75,6 +75,14 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
+mysql:
+  resources: {}
+  image:
+    repository: mysql
+    pullPolicy: IfNotPresent
+    tag: "8.0"
+
+
 autoscaling:
   enabled: false
   minReplicas: 1

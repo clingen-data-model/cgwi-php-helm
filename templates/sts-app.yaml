@@ -65,8 +65,8 @@ spec:
             - name: appdata
               mountPath: /srv/app
         - name: loaddata
-          image: mysql:8.0
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          imagePullPolicy: {{ .Values.mysql.image.pullPolicy }}
           envFrom:
             - secretRef:
                 name: {{ include "cgwi-php.fullname" . }}-mysql

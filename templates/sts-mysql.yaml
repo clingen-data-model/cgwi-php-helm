@@ -53,8 +53,8 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "mysql:8.0"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+          imagePullPolicy: {{ .Values.mysql.image.pullPolicy }}
           ports:
             - name: mysql
               containerPort: 3306
@@ -63,8 +63,7 @@ spec:
             - secretRef:
                 name: {{ include "cgwi-php.fullname" . }}-mysql
           resources:
-            limits:
-              memory: 512Mi
+            {{- toYaml .Values.mysql.resources | nindent 12 }}
           volumeMounts:
           - name: dbdata
             mountPath: /var/lib/mysql
