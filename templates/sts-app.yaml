@@ -26,9 +26,6 @@ metadata:
     component: app
     {{- include "cgwi-php.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       component: app
@@ -244,18 +241,6 @@ spec:
       - name: fpm-upstream
         configMap:
           name: {{ include "cgwi-php.fullname" . }}-fpm-upstream
-      {{- with .Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      {{- with .Values.tolerations }}
-      tolerations:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
   volumeClaimTemplates:
     - metadata:
         name: appdata
