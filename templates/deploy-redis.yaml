@@ -66,9 +66,13 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ include "cgwi-php.fullname" . }}-redis
+          volumeMounts:
+            - name: redis-data
+              mountPath: /var/lib/redis/data
+              subPath: redis
           resources:
             limits:
-              memory: 512Mi
+              memory: 256Mi
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -81,3 +85,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: {{ include "cgwi-php.fullname" . }}-backups
