@@ -77,27 +77,6 @@ spec:
             - name: appdata
               mountPath: /srv/app
       containers:
-        - name: nginx
-          command:
-            - /usr/sbin/nginx
-            - -g
-            - daemon off;
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          ports:
-            - name: http
-              containerPort: 8080
-              protocol: TCP
-          volumeMounts:
-            - name: appdata
-              mountPath: /srv/app
-            - name: fpm-upstream
-              mountPath: /etc/nginx/conf.d/_upstream-fpm.conf
-              subPath: _upstream-fpm.conf
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
         - name: app
           command:
             - bash
@@ -129,6 +108,27 @@ spec:
           volumeMounts:
             - name: appdata
               mountPath: /srv/app
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        - name: nginx
+          command:
+            - /usr/sbin/nginx
+            - -g
+            - daemon off;
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          volumeMounts:
+            - name: appdata
+              mountPath: /srv/app
+            - name: fpm-upstream
+              mountPath: /etc/nginx/conf.d/_upstream-fpm.conf
+              subPath: _upstream-fpm.conf
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
         - name: scheduler
