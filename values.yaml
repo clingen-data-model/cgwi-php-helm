@@ -101,9 +101,9 @@ app_config:
   APP_NAME: ""
   APP_DEBUG: ""
   APP_URL: ""
-  CACHE_DRIVER: ""
-  HOME: ""
-  MAIL_DRIVER: ""
+  CACHE_DRIVER: redis
+  HOME: /srv/app
+  MAIL_DRIVER: log # NOTE: probably should be smtp in production...
   MAIL_ENCRYPTION: ""
   MAIL_FROM_ADDRESS: ""
   MAIL_FROM_NAME: ""
@@ -111,6 +111,6 @@ app_config:
   MAIL_PASSWORD: ""
   MAIL_PORT: ""
   MAIL_USERNAME: ""
-  QUEUE_CONNECTION: ""
-  SESSION_DRIVER: ""
-  URL_SCHEME: ""
+  QUEUE_CONNECTION: redis
+  SESSION_DRIVER: file
+  URL_SCHEME: https
