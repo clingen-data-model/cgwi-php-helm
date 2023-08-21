@@ -18,6 +18,9 @@ spec:
   {{- end }}
   tls:
     {{- toYaml .Values.route.tls | nindent 4 }}
+  path: /
+  port:
+    targetPort: http
   to:
     kind: Service
     name: {{ $fullName }}
