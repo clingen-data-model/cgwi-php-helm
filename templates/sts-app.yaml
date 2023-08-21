@@ -61,37 +61,6 @@ spec:
           volumeMounts:
             - name: appdata
               mountPath: /srv/app
-        - name: loaddata
-          image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
-          imagePullPolicy: {{ .Values.mysql.image.pullPolicy }}
-          envFrom:
-            - secretRef:
-                name: {{ include "cgwi-php.fullname" . }}-mysql
-          command:
-            - bash
-            - -c
-            - |-
-              #!/bin/bash
-              set -euo pipefail
-              IFS=$'\n\t'
-
-              # ensure we can connect to the database (will retry through k8s if not)
-              if ! mysqladmin -u $MYSQL_USER -p$MYSQL_PASSWORD -h $DB_HOST ping --connect_timeout=30; then
-                echo "Unable to connect to database, retrying once more..."
-                if ! mysqladmin -u $MYSQL_USER -p$MYSQL_PASSWORD -h $DB_HOST ping --connect_timeout=30; then
-                  echo "No luck this time, either... Will let k8s handle it."
-                  exit 1
-                fi
-              fi
-
-              # exit if data has already been loaded
-              echo 'show tables;' | mysql -h $DB_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD --batch $MYSQL_DATABASE | grep -q 'migrations' && exit 0
-
-              # load data
-              zcat "/backups/db/$MYSQL_DATABASE.sql.gz" | mysql -h $DB_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD $MYSQL_DATABASE
-          volumeMounts:
-            - name: backups
-              mountPath: /backups
         - name: composer
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
@@ -235,9 +204,6 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
-      - name: backups
-        persistentVolumeClaim:
-          claimName: {{ include "cgwi-php.fullname" . }}-backups
       - name: fpm-upstream
         configMap:
           name: {{ include "cgwi-php.fullname" . }}-fpm-upstream
