@@ -1,0 +1,115 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-backup-{{ include "cgwi-php.fullname" . }}
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      creationTimestamp: null
+    spec:
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            run: db-backup
+        spec:
+          containers:
+          - command:
+            - bash
+            - -c
+            - |
+              set -Eeu -o pipefail;
+              date;
+              echo "Backing up individual database(s)"
+              for db in $(
+                echo show databases |
+                mysql -u root -B -N |
+                grep -Evw '(information_schema|performance_schema|sys)'
+              )
+              do
+                echo Backing up $db
+                BACKUP_FILE="${BACKUP_PATH}"/"$db".$(date +"%Y-%m-%d-%H-%M-%S.sql.gz")
+                mysqldump -u root -h ${MYSQL_HOST:-mysql} --quick \
+                    --comments --dump-date --lock-all-tables  \
+                    --column-statistics=0 --flush-privileges --flush-logs \
+                    "$db" \
+                  | gzip > "$BACKUP_FILE"
+                ln -srf "$BACKUP_FILE" "${BACKUP_PATH}/${db}.sql.gz"
+                date
+              done
+              echo "Success!"
+            envFrom:
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-mysql
+            env:
+            - name: BACKUP_PATH
+              value: /backups
+            - name: MYSQL_HOST
+              value: {{ include "cgwi-php.fullname" . }}-mysql
+            - name: MYSQL_PWD
+              value: $(MYSQL_ROOT_PASSWORD)
+            image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+            imagePullPolicy: {{ .Values.mysql.image.pullPolicy }}
+            name: mysql-backup-{{ include "cgwi-php.fullname" . }}
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+            volumeMounts:
+            - mountPath: /backups
+              name: backups-dir
+              subPath: db
+          restartPolicy: OnFailure
+          terminationGracePeriodSeconds: 30
+          volumes:
+          - name: backups-dir
+            persistentVolumeClaim:
+              claimName: backups-{{ include "cgwi-php.fullname" . }}
+  schedule: 40 */6 * * *
+  successfulJobsHistoryLimit: 4
+
+---
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-clean-backup-{{ include "cgwi-php.fullname" . }}
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    metadata:
+      creationTimestamp: null
+    spec:
+      template:
+        metadata:
+          creationTimestamp: null
+          labels:
+            run: db-backup
+        spec:
+          containers:
+          - command:
+            - bash
+            - -c
+            - for x in $(find ${BACKUP_PATH} -type f -mtime +7); do rm "$x"; done;
+              echo 'Cleaned backups.'
+            env:
+            - name: BACKUP_PATH
+              value: /backups
+            image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+            imagePullPolicy: {{ .Values.mysql.image.pullPolicy }}
+            name: mysql-clean-backup-{{ include "cgwi-php.fullname" . }}
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+            volumeMounts:
+            - mountPath: /backups
+              name: backups-dir
+              subPath: db
+          restartPolicy: OnFailure
+          terminationGracePeriodSeconds: 30
+          volumes:
+          - name: backups-dir
+            persistentVolumeClaim:
+              claimName: backups-{{ include "cgwi-php.fullname" . }}
+  schedule: 0 2 */1 * *
+  successfulJobsHistoryLimit: 4
