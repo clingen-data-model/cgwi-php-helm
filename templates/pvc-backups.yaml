@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   annotations:
     helm.sh/resource-policy: keep
-  name: {{ include "cgwi-php.fullname" . }}-backups
+  name: backups-{{ include "cgwi-php.fullname" . }}
   labels:
     {{- include "cgwi-php.labels" . | nindent 4 }}
 spec:

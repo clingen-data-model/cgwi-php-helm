@@ -76,4 +76,4 @@ spec:
       volumes:
         - name: redis-data
           persistentVolumeClaim:
-            claimName: {{ include "cgwi-php.fullname" . }}-backups
+            claimName: backups-{{ include "cgwi-php.fullname" . }}
