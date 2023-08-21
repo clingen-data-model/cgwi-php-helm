@@ -20,3 +20,14 @@
   echo "Visit http://127.0.0.1:8080 to use your application"
   kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
 {{- end }}
+
+2. To load a prior database from a local mysqldump-ed database (in $MYSQL_DATABASE.sql.gz, for instance):
+  gzip -dc $MYSQL_DATABASE.sql.gz | kubectl exec -i svc/{{ include "cgwi-php.fullname" . }}-mysql -- bash -c 'MYSQL_PWD=$MYSQL_PASSWORD mysql -u $MYSQL_USER $MYSQL_DATABASE'
+
+3. Obtaining a backup:
+  Backups are stored in the persistent-volume-claim backups-{{ include "cgwi-php.fullname" . }} (from relevant cronjob).
+  K8S does not make it trivial to get get files from intermittently-attached PVCs, though, so to get a one-off backup:
+
+  kubectl exec svc/{{ include "cgwi-php.fullname" . }}-mysql -- bash -c 'MYSQL_PWD=$MYSQL_ROOT_PASSWORD mysqldump -u root --quick --comments --dump-date --lock-all-tables --column-statistics=0 --flush-privileges --flush-logs $MYSQL_DATABASE'
+
+  This will write to stdout. You will probably want to pipe/redirect this...
