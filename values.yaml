@@ -75,6 +75,12 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
+persistence:
+  size:
+    app: 2Gi
+    mysql: 4Gi
+    backups: 5Gi # also used by redis
+
 mysql:
   resources: {}
   image:
