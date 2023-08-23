@@ -21,10 +21,26 @@
   kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
 {{- end }}
 
-2. To load a prior database from a local mysqldump-ed database (in $MYSQL_DATABASE.sql.gz, for instance):
+2. Initial setup (population of persistent volumes):
+  After first helm install, the app will not be running (and in fact, neither the mysql database nor the app directory
+  will contain anything useful).
+
+  There is a cronjob (cj/clone-and-compose-{{ include "cgwi-php.fullname" . }}) which is set to suspend, that performs
+  `git clone` (or subsequent `git pull`), then `composer install` in the `/srv/app` directory mounted in the relevant pvc.
+
+  You can manually create a one-off batch job from this cj as a template:
+    kubectl create job --from=cronjob/clone-and-compose-{{ include "cgwi-php.fullname" . }} initialize-{{ include "cgwi-php.fullname" . }}
+
+  If doing a new install with existing data, you'll also want to populate the `/app/srv/storage` directory (TODO docs) and the
+  mysql database as described in item #3 below.
+
+  As the last step, you will need to "scale-up" the statefulset for the app:
+    kubectl scale --replicas=1 sts/{{ include "cgwi-php.fullname" . }}-app
+
+3. To load a prior database from a local mysqldump-ed database (in $MYSQL_DATABASE.sql.gz, for instance):
   gzip -dc $MYSQL_DATABASE.sql.gz | kubectl exec -i svc/{{ include "cgwi-php.fullname" . }}-mysql -- bash -c 'MYSQL_PWD=$MYSQL_PASSWORD mysql -u $MYSQL_USER $MYSQL_DATABASE'
 
-3. Obtaining a backup:
+4. Obtaining a database backup:
   Backups are stored in the persistent-volume-claim backups-{{ include "cgwi-php.fullname" . }} (from relevant cronjob).
   K8S does not make it trivial to get get files from intermittently-attached PVCs, though, so to get a one-off backup:
 
