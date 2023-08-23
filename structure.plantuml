@@ -1,0 +1,42 @@
+@@startuml cgwi-php-helm
+
+map "sts/app" as app #LightBlue {
+    app => runs php-fpm
+    nginx => handles static files, delegates php to **app**
+    scheduler => runs cron jobs
+    queue => runs queue jobs
+}
+
+object "pvc/appdata" as appdata #Khaki
+
+object "sts/mysql" as mysql #LightBlue {
+    standard mysql:8.0 container
+}
+
+object "pvc/dbdata" as dbdata #Khaki
+
+object "deploy/redis" as redis #LightBlue {
+    standard redis:alpine3.18 container
+}
+
+object "pvc/backups" as backups #Khaki
+
+object "cj/clone-and-compose" as cjclonecompose #MistyRose {
+    initialize **appdata**
+}
+
+object "cj/mysql-backup" as cjmysqlbackup #MistyRose {
+    runs backup script
+}
+
+app --> appdata : /srv/app
+mysql --> dbdata : /var/lib/mysql
+redis --> backups : /var/lib/redis as redis-data
+cjmysqlbackup --> backups : /backups as db
+cjclonecompose --> appdata : /srv/app
+
+cjmysqlbackup .left.> mysql : MYSQL_HOST
+app .down.> mysql : MYSQL_HOST
+app .down.> redis : REDIS_HOST
+
+@@enduml
