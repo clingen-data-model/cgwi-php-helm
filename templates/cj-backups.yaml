@@ -91,7 +91,8 @@ spec:
           - command:
             - bash
             - -c
-            - for x in $(find ${BACKUP_PATH} -type f -mtime +7); do rm "$x"; done;
+            - |-
+              for x in $(find ${BACKUP_PATH} -type f -mtime +7); do rm "$x"; done;
               echo 'Cleaned backups.'
             env:
             - name: BACKUP_PATH

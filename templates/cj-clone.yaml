@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: clone-and-compose-{{ include "cgwi-php.fullname" . }}
+spec:
+  suspend: true # Do not run automatically
+  schedule: "@weekly" # but not really, since it will be suspended...
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: clone-and-compose-{{ include "cgwi-php.fullname" . }}
+        spec:
+          restartPolicy: OnFailure
+          initContainers:
+            - name: clone
+              image: alpine/git
+              command:
+                - sh
+                - -c
+                - |-
+                  if [ ! -d /srv/app/.git ]; then
+                    git clone --single-branch --branch {{ .Values.git.branch }} --depth "1" {{ .Values.git.repository }} /srv/app
+                  else
+                    git pull
+                  fi
+              volumeMounts:
+                - name: appdata
+                  mountPath: /srv/app
+          containers:
+            - name: composer
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command:
+                - bash
+                - -c
+                - |-
+                  cd /srv/app
+                  composer install --no-interaction --no-plugins --no-scripts --prefer-dist --no-dev --no-suggest
+                  composer dump-autoload
+              volumeMounts:
+                - name: appdata
+                  mountPath: /srv/app
+          volumes:
+          - name: appdata
+            persistentVolumeClaim:
+              claimName: appdata-{{ include "cgwi-php.fullname" . }}

@@ -26,6 +26,7 @@ metadata:
     component: app
     {{- include "cgwi-php.labels" . | nindent 4 }}
 spec:
+  replicas: 0 # set to 1 to enable
   selector:
     matchLabels:
       component: app
@@ -49,33 +50,6 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
-        - name: clone
-          image: alpine/git
-          command:
-            - sh
-            - -c
-            - |-
-              if [[ ! -d /srv/app/.git ]]; then
-                git clone --single-branch --branch {{ .Values.git.branch }} --depth "1" {{ .Values.git.repository }} /srv/app
-              fi
-          volumeMounts:
-            - name: appdata
-              mountPath: /srv/app
-        - name: composer
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          command:
-            - bash
-            - -c
-            - |-
-              cd /srv/app
-              if [[ ! -d vendor ]]; then
-                composer install --no-interaction --no-plugins --no-scripts --prefer-dist --no-dev --no-suggest
-              fi
-              composer dump-autoload
-          volumeMounts:
-            - name: appdata
-              mountPath: /srv/app
       containers:
         - name: app
           command:
@@ -207,11 +181,6 @@ spec:
       - name: fpm-upstream
         configMap:
           name: {{ include "cgwi-php.fullname" . }}-fpm-upstream
-  volumeClaimTemplates:
-    - metadata:
-        name: appdata
-      spec:
-        accessModes: [ "ReadWriteMany" ]
-        resources:
-          requests:
-            storage: 1Gi
+      - name: appdata
+        persistentVolumeClaim:
+          claimName: appdata-{{ include "cgwi-php.fullname" . }}
