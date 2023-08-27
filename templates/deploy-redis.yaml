@@ -68,7 +68,7 @@ spec:
                 name: {{ include "cgwi-php.fullname" . }}-redis
           volumeMounts:
             - name: redis-data
-              mountPath: /var/lib/redis/data
+              mountPath: /data
               subPath: redis
           resources:
             limits:

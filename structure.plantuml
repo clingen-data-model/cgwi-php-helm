@@ -31,7 +31,7 @@ object "cj/mysql-backup" as cjmysqlbackup #MistyRose {
 
 app --> appdata : /srv/app
 mysql --> dbdata : /var/lib/mysql
-redis --> backups : /var/lib/redis as redis-data
+redis --> backups : /data as redis-data
 cjmysqlbackup --> backups : /backups as db
 cjclonecompose --> appdata : /srv/app
 
