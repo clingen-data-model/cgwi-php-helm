@@ -102,6 +102,7 @@ secrets:
   redis:
     REDIS_PREFIX: ""
     REDIS_PASSWORD: ""
+  scheduler:
 
 app_config:
   APP_NAME: ""

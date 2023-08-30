@@ -21,7 +21,7 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "cgwi-php.fullname" . }}-app
+  name: {{ include "cgwi-php.fullname" . }}
   labels:
     component: app
     {{- include "cgwi-php.labels" . | nindent 4 }}
@@ -129,6 +129,8 @@ spec:
                 name: {{ include "cgwi-php.fullname" . }}-mysql
             - secretRef:
                 name: {{ include "cgwi-php.fullname" . }}-redis
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-scheduler
           env:
           - name: DB_DATABASE
             value: $(MYSQL_DATABASE)
