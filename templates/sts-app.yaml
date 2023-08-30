@@ -138,6 +138,8 @@ spec:
             value: $(MYSQL_USER)
           - name: DB_PASSWORD
             value: $(MYSQL_PASSWORD)
+          - name: APP_NAME
+            value: $(APP_NAME) - scheduler
           volumeMounts:
             - name: appdata
               mountPath: /srv/app
@@ -174,6 +176,8 @@ spec:
             value: $(MYSQL_USER)
           - name: DB_PASSWORD
             value: $(MYSQL_PASSWORD)
+          - name: APP_NAME
+            value: $(APP_NAME) - queue
           volumeMounts:
             - name: appdata
               mountPath: /srv/app
