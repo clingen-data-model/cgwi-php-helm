@@ -35,7 +35,7 @@
   mysql database as described in item #3 below.
 
   As the last step, you will need to "scale-up" the statefulset for the app:
-    kubectl scale --replicas=1 sts/{{ include "cgwi-php.fullname" . }}-app
+    kubectl scale --replicas=1 sts/{{ include "cgwi-php.fullname" . }}
 
 3. To load a prior database from a local mysqldump-ed database (in $MYSQL_DATABASE.sql.gz, for instance):
   gzip -dc $MYSQL_DATABASE.sql.gz | kubectl exec -i svc/{{ include "cgwi-php.fullname" . }}-mysql -- bash -c 'MYSQL_PWD=$MYSQL_PASSWORD mysql -u $MYSQL_USER $MYSQL_DATABASE'
