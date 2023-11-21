@@ -18,6 +18,9 @@ spec:
           initContainers:
             - name: clone
               image: alpine/git
+              env:
+                - name: HOME
+                  value: /srv/app
               command:
                 - sh
                 - -c
@@ -25,6 +28,8 @@ spec:
                   if [ ! -d /srv/app/.git ]; then
                     git clone --single-branch --branch {{ .Values.git.branch }} --depth "1" {{ .Values.git.repository }} /srv/app
                   else
+                    git config --global --add safe.directory /srv/app
+                    cd /srv/app
                     git pull
                   fi
               volumeMounts:
