@@ -2,6 +2,8 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: mysql-backup-{{ include "cgwi-php.fullname" . }}
+  labels:
+    {{- include "cgwi-php.labels" . | nindent 4 }}
 spec:
   concurrencyPolicy: Forbid
   failedJobsHistoryLimit: 3
@@ -14,6 +16,7 @@ spec:
           creationTimestamp: null
           labels:
             run: db-backup
+            {{- include "cgwi-php.labels" . | nindent 12 }}
         spec:
           containers:
           - command:
@@ -69,11 +72,12 @@ spec:
   successfulJobsHistoryLimit: 4
 
 ---
-
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: mysql-clean-backup-{{ include "cgwi-php.fullname" . }}
+  labels:
+    {{- include "cgwi-php.labels" . | nindent 4 }}
 spec:
   concurrencyPolicy: Forbid
   failedJobsHistoryLimit: 3
@@ -86,6 +90,7 @@ spec:
           creationTimestamp: null
           labels:
             run: db-backup
+            {{- include "cgwi-php.labels" . | nindent 12 }}
         spec:
           containers:
           - command:
@@ -114,3 +119,139 @@ spec:
               claimName: backups-{{ include "cgwi-php.fullname" . }}
   schedule: 0 2 */1 * *
   successfulJobsHistoryLimit: 4
+
+{{ if .Values.secrets.s3backup -}}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-backup-s3-{{ include "cgwi-php.fullname" . }}
+  labels:
+    {{- include "cgwi-php.labels" . | nindent 4 }}
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            run: mysql-backup-s3
+            {{- include "cgwi-php.labels" . | nindent 12 }}
+        spec:
+          containers:
+          - command:
+            - bash
+            - -c
+            - |
+              set -Eeu -o pipefail;
+              IFS=$'\n\t'
+
+              FILE=$(readlink -f /backups/${DB}.sql.gz)
+              BASENAME=$(basename "$FILE")
+              resource="/${BUCKET}/${FULLNAME}.${BASENAME}"
+              echo Writing $FILE to $resource
+              contentType="application/octet-stream"
+              dateValue=`date -R`
+              stringToSign="PUT\n\n${contentType}\n${dateValue}\n${resource}"
+              signature=`echo -en "${stringToSign}" | openssl sha1 -hmac "${S3SECRET}" -binary | base64`
+              curl -X PUT -T "$FILE" \
+                -H "Host: ${BUCKET}.s3.amazonaws.com" \
+                -H "Date: ${dateValue}" \
+                -H "Content-Type: ${contentType}" \
+                -H "Authorization: AWS ${S3KEY}:${signature}" \
+                "https://${BUCKET}.s3.amazonaws.com/${FULLNAME}.${BASENAME}"
+              date
+              echo "Success!"
+            env:
+            - name: FULLNAME
+              value: {{ include "cgwi-php.fullname" . }}
+            - name: DB
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "cgwi-php.fullname" . }}-mysql
+                  key: MYSQL_DATABASE
+            envFrom:
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-s3backup
+            image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+            imagePullPolicy: IfNotPresent
+            name: mysql-backup-s3-{{ include "cgwi-php.fullname" . }}
+            volumeMounts:
+            - mountPath: /backups
+              name: backups-dir
+              subPath: db
+          volumes:
+          - name: backups-dir
+            persistentVolumeClaim:
+              claimName: backups-{{ include "cgwi-php.fullname" . }}
+          restartPolicy: OnFailure
+          terminationGracePeriodSeconds: 30
+  schedule: 40 3 * 1 *
+  successfulJobsHistoryLimit: 2
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: storage-backup-s3-{{ include "cgwi-php.fullname" . }}
+  labels:
+    {{- include "cgwi-php.labels" . | nindent 4 }}
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            run: storage-backup-s3
+            {{- include "cgwi-php.labels" . | nindent 12 }}
+        spec:
+          containers:
+          - command:
+            - bash
+            - -c
+            - |
+              set -Eeu -o pipefail;
+              IFS=$'\n\t'
+
+              resource="/${BUCKET}/${FULLNAME}.storage.tjz"
+              echo Writing to $resource
+              contentType="application/octet-stream"
+              # It appears we have to write to a temp file since AWS needs to know the size of the file
+              TMPFILE=$(mktemp)
+              tar cJvf "$TMPFILE" -C /storage .
+              dateValue=`date -R`
+              stringToSign="PUT\n\n${contentType}\n${dateValue}\n${resource}"
+              signature=`echo -en "${stringToSign}" | openssl sha1 -hmac "${S3SECRET}" -binary | base64`
+              curl -X PUT -T "$TMPFILE" \
+                  -H "Host: ${BUCKET}.s3.amazonaws.com" \
+                  -H "Date: ${dateValue}" \
+                  -H "Content-Type: ${contentType}" \
+                  -H "Authorization: AWS ${S3KEY}:${signature}" \
+                  "https://${BUCKET}.s3.amazonaws.com/${FULLNAME}.storage.tjz"
+              rm -f "$TMPFILE"
+              date
+              echo "Success!"
+            env:
+            - name: FULLNAME
+              value: {{ include "cgwi-php.fullname" . }}
+            envFrom:
+            - secretRef:
+                name: {{ include "cgwi-php.fullname" . }}-s3backup
+            image: "{{ .Values.mysql.image.repository }}:{{ .Values.mysql.image.tag }}"
+            imagePullPolicy: IfNotPresent
+            name: mysql-backup-s3-{{ include "cgwi-php.fullname" . }}
+            volumeMounts:
+            - mountPath: /storage
+              name: appdata
+              subPath: storage
+          volumes:
+          - name: appdata
+            persistentVolumeClaim:
+              claimName: appdata-{{ include "cgwi-php.fullname" . }}
+          restartPolicy: OnFailure
+          terminationGracePeriodSeconds: 30
+  schedule: 45 3 * 1 *
+  successfulJobsHistoryLimit: 2
+{{- end -}}

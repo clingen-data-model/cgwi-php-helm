@@ -102,6 +102,10 @@ secrets:
   redis:
     REDIS_PREFIX: ""
     REDIS_PASSWORD: ""
+  s3backup:
+    BUCKET: ""
+    S3KEY: ""
+    S3SECRET: ""
 
 app_config:
   APP_NAME: ""
