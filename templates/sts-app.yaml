@@ -111,11 +111,7 @@ spec:
             - -c
             - |-
               /srv/app/scripts/awaitdb.bash
-              while true
-              do
-                php artisan schedule:run --verbose --no-interaction &
-                sleep 60
-              done
+              php artisan schedule:work --verbose --no-interaction
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
