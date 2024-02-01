@@ -113,7 +113,7 @@ app_config:
   APP_URL: ""
   CACHE_DRIVER: redis
   HOME: /srv/app
-  MAIL_DRIVER: log # NOTE: probably should be smtp in production...
+  MAIL_MAILER: log # NOTE: probably should be smtp in production...
   MAIL_ENCRYPTION: ""
   MAIL_FROM_ADDRESS: ""
   MAIL_FROM_NAME: ""
