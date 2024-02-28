@@ -75,6 +75,9 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
+# an override to allow the app to have different requests/limits than sidecar containers
+app_resources:
+
 persistence:
   size:
     app: 2Gi

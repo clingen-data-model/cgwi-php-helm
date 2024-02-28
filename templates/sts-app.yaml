@@ -83,7 +83,11 @@ spec:
             - name: appdata
               mountPath: /srv/app
           resources:
+            {{- if .Values.app_resources }}
+            {{- toYaml .Values.app_resources | nindent 12 }}
+            {{- else }}
             {{- toYaml .Values.resources | nindent 12 }}
+            {{- end }}
         - name: nginx
           command:
             - /usr/sbin/nginx
