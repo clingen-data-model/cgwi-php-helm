@@ -78,6 +78,10 @@ resources: {}
 # an override to allow the app to have different requests/limits than sidecar containers
 app_resources:
 
+scheduler:
+  schedule: "*/10 * * * *"
+  resources:
+
 persistence:
   size:
     app: 2Gi

@@ -109,40 +109,6 @@ spec:
               subPath: _upstream-fpm.conf
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-        - name: scheduler
-          command:
-            - bash
-            - -c
-            - |-
-              /srv/app/scripts/awaitdb.bash
-              php artisan schedule:work --verbose --no-interaction
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          envFrom:
-            - configMapRef:
-                name: {{ include "cgwi-php.fullname" . }}
-            - secretRef:
-                name: {{ include "cgwi-php.fullname" . }}-app
-            - secretRef:
-                name: {{ include "cgwi-php.fullname" . }}-mysql
-            - secretRef:
-                name: {{ include "cgwi-php.fullname" . }}-redis
-          env:
-          - name: DB_DATABASE
-            value: $(MYSQL_DATABASE)
-          - name: DB_USERNAME
-            value: $(MYSQL_USER)
-          - name: DB_PASSWORD
-            value: $(MYSQL_PASSWORD)
-          - name: APP_NAME
-            value: $(APP_NAME) - scheduler
-          volumeMounts:
-            - name: appdata
-              mountPath: /srv/app
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
         - name: queue
           command:
             - bash

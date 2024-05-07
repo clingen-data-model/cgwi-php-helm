@@ -1,0 +1,59 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduler-{{ include "cgwi-php.fullname" . }}
+spec:
+  schedule: {{ .Values.scheduler.schedule | quote }}
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 8
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: scheduler-{{ include "cgwi-php.fullname" . }}
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: scheduler
+              command:
+                - bash
+                - -c
+                - |-
+                  /srv/app/scripts/awaitdb.bash
+                  php artisan schedule:run -vv --no-interaction
+              securityContext:
+                {{- toYaml .Values.securityContext | nindent 16 }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              envFrom:
+                - configMapRef:
+                    name: {{ include "cgwi-php.fullname" . }}
+                - secretRef:
+                    name: {{ include "cgwi-php.fullname" . }}-app
+                - secretRef:
+                    name: {{ include "cgwi-php.fullname" . }}-mysql
+                - secretRef:
+                    name: {{ include "cgwi-php.fullname" . }}-redis
+              env:
+              - name: DB_DATABASE
+                value: $(MYSQL_DATABASE)
+              - name: DB_USERNAME
+                value: $(MYSQL_USER)
+              - name: DB_PASSWORD
+                value: $(MYSQL_PASSWORD)
+              - name: APP_NAME
+                value: $(APP_NAME) - scheduler
+              volumeMounts:
+                - name: appdata
+                  mountPath: /srv/app
+              resources:
+                {{- if .Values.app_resources }}
+                {{- toYaml .Values.scheduler.resources | nindent 16 }}
+                {{- else }}
+                {{- toYaml .Values.resources | nindent 16 }}
+                {{- end }}
+          volumes:
+          - name: appdata
+            persistentVolumeClaim:
+              claimName: appdata-{{ include "cgwi-php.fullname" . }}
