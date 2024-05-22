@@ -252,6 +252,6 @@ spec:
               claimName: appdata-{{ include "cgwi-php.fullname" . }}
           restartPolicy: OnFailure
           terminationGracePeriodSeconds: 30
-  schedule: 45 3 * 1 *
+  schedule: 45 3 * * 1
   successfulJobsHistoryLimit: 2
 {{- end -}}
