@@ -1,0 +1,3 @@
+[submodule "cgwi-configs"]
+	path = cgwi-configs
+	url = git@sc.unc.edu:dept-clingen-scale/cgwi-configs.git
