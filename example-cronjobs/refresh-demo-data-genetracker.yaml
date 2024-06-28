@@ -1,0 +1,78 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: refresh-demo-data
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: refresh-demo-data
+        spec:
+          containers:
+          - command:
+            - bash
+            - -c
+            - |-
+              set -Eeu -o pipefail
+              mysql -u root mysql <<EOSQL
+              DROP DATABASE \`${MYSQL_DATABASE}\`;
+              CREATE DATABASE \`${MYSQL_DATABASE}\`;
+              EOSQL
+              zcat "/backups/$MYSQL_DATABASE.sql.gz" | mysql -u root "$MYSQL_DATABASE"
+            env:
+            - name: MYSQL_PWD
+              value: $(MYSQL_ROOT_PASSWORD)
+            - name: MYSQL_HOST
+              value: $(DB_HOST)
+            envFrom:
+            - secretRef:
+                name: genetracker-demo-mysql
+            image: mysql:8.0
+            imagePullPolicy: IfNotPresent
+            name: dbsync
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+            volumeMounts:
+            - mountPath: /backups
+              name: backups-prod
+              subPath: db
+          - command:
+            - rclone
+            - sync
+            - -l
+            - -M
+            - /storage-prod
+            - /storage-demo
+            image: rclone/rclone
+            imagePullPolicy: Always
+            name: storagesync
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+            volumeMounts:
+            - mountPath: /storage-prod
+              name: appdata-prod
+              subPath: storage
+            - mountPath: /storage-demo
+              name: appdata-demo
+              subPath: storage
+          dnsPolicy: ClusterFirst
+          restartPolicy: Never
+          schedulerName: default-scheduler
+          terminationGracePeriodSeconds: 30
+          volumes:
+          - name: backups-prod
+            persistentVolumeClaim:
+              claimName: backups-genetracker-prod
+          - name: appdata-prod
+            persistentVolumeClaim:
+              claimName: appdata-genetracker-prod
+          - name: appdata-demo
+            persistentVolumeClaim:
+              claimName: appdata-genetracker-demo
+  schedule: '@weekly'
+  successfulJobsHistoryLimit: 1
+  suspend: true
