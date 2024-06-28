@@ -29,7 +29,9 @@
   `git clone` (or subsequent `git pull`), then `composer install` in the `/srv/app` directory mounted in the relevant pvc.
 
   You can manually create a one-off batch job from this cj as a template:
-    kubectl create job --from=cronjob/clone-and-compose-{{ include "cgwi-php.fullname" . }} initialize-{{ include "cgwi-php.fullname" . }}
+    kubectl create job --from=cronjob/clone-and-compose-{{ include "cgwi-php.fullname" . }} initialize-{{ include "cgwi-php.fullname" . }}-$(date '+%Y%m%d-%H%M') --dry-run=client -o json | jq '.metadata |= (del(.ownerReferences))' | kubectl apply -f -
+
+  (this requires jq for now as a workaround to a kubernetes/openshift issue creating jobs from cronjobs)
 
   If doing a new install with existing data, you'll also want to populate the `/app/srv/storage` directory (TODO docs) and the
   mysql database as described in item #3 below.
