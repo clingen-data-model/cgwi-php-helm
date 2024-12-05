@@ -15,6 +15,7 @@ metadata:
     {{- include "cgwi-php.labels" . | nindent 4 }}
 data:
   _upstream-fpm.conf: |
+    client_max_body_size 16M;
     upstream fpm {
         server localhost:9000;
     }
