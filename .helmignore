@@ -22,3 +22,4 @@
 *.tmproj
 .vscode/
 secret-values/
+cgwi-configs/
