@@ -1,9 +1,9 @@
 replicaCount: 1
 
 image:
-  repository: ghcr.io/clingen-data-model/cgwi-php-12.8-8.3
+  repository: ghcr.io/clingen-data-model/cgwi-php-13.2-8.5
   pullPolicy: IfNotPresent
-  tag: "v1.1.10"
+  tag: "v1.1.11"
 
 git:
   branch: "main"
