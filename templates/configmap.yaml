@@ -19,3 +19,23 @@ data:
     upstream fpm {
         server localhost:9000;
     }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cgwi-php.fullname" . }}-caddy-config
+  labels:
+    {{- include "cgwi-php.labels" . | nindent 4 }}
+data:
+  Caddyfile: |
+    http://:8000 {
+    	request_body {
+    		max_size {$CADDY_MAX_REQUEST_SIZE:16MB}
+    	}
+    	root * {$CADDY_PUBLIC_DIR:/srv/app/public}
+    	encode
+    	php_fastcgi {$CADDY_FPM:localhost:9000} {
+    		read_timeout {$CADDY_READ_TIMEOUT:180s}
+    	}
+    	file_server
+    }

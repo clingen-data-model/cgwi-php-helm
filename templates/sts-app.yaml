@@ -9,7 +9,7 @@ spec:
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
-      targetPort: http
+      targetPort: caddy
       protocol: TCP
       name: http
   selector:
@@ -88,6 +88,33 @@ spec:
             {{- else }}
             {{- toYaml .Values.resources | nindent 12 }}
             {{- end }}
+        - name: caddy
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.caddy.image.repository }}:{{ .Values.caddy.image.tag }}"
+          imagePullPolicy: {{ .Values.caddy.image.pullPolicy }}
+          env:
+            {{- range $key, $value := .Values.caddy.envVars }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          ports:
+            - name: caddy
+              containerPort: 8000
+              protocol: TCP
+          volumeMounts:
+            - name: appdata
+              mountPath: /srv/app
+            - name: caddy-config
+              mountPath: /etc/caddy
+            - name: caddydata
+              mountPath: /config
+              subPath: config
+            - name: caddydata
+              mountPath: /data
+              subPath: data
+          resources:
+            {{- toYaml .Values.caddy.resources | nindent 12 }}
         - name: nginx
           command:
             - /usr/sbin/nginx
@@ -151,6 +178,12 @@ spec:
       - name: fpm-upstream
         configMap:
           name: {{ include "cgwi-php.fullname" . }}-fpm-upstream
+      - name: caddy-config
+        configMap:
+          name: {{ include "cgwi-php.fullname" . }}-caddy-config
       - name: appdata
         persistentVolumeClaim:
           claimName: appdata-{{ include "cgwi-php.fullname" . }}
+      - name: caddydata
+        persistentVolumeClaim:
+          claimName: caddydata-{{ include "cgwi-php.fullname" . }}
