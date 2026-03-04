@@ -26,7 +26,7 @@ spec:
                 - -c
                 - |-
                   if [ ! -d /srv/app/.git ]; then
-                    git clone --single-branch --branch {{ .Values.git.branch }} --depth "1" {{ .Values.git.repository }} /srv/app
+                    git clone --branch {{ .Values.git.branch }} {{ .Values.git.repository }} /srv/app
                   else
                     git config --global --add safe.directory /srv/app
                     cd /srv/app
