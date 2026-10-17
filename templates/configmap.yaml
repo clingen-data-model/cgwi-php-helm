@@ -6,6 +6,7 @@ metadata:
     {{- include "cgwi-php.labels" . | nindent 4 }}
 data:
   {{- toYaml .Values.app_config | nindent 2}}
+{{- if .Values.nginx.enabled }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -19,6 +20,8 @@ data:
     upstream fpm {
         server localhost:9000;
     }
+{{- end }}
+{{- if .Values.caddy.enabled }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -39,3 +42,4 @@ data:
     	}
     	file_server
     }
+{{- end }}

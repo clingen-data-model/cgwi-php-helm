@@ -60,3 +60,16 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Container port the service targets: caddy when enabled, otherwise nginx.
+*/}}
+{{- define "cgwi-php.webTargetPort" -}}
+{{- if .Values.caddy.enabled -}}
+caddy
+{{- else if .Values.nginx.enabled -}}
+http
+{{- else -}}
+{{- fail "at least one of caddy.enabled or nginx.enabled must be true" -}}
+{{- end -}}
+{{- end }}
