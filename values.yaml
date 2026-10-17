@@ -98,7 +98,7 @@ mysql:
 
 # Web servers in front of php-fpm. If both are enabled, the service routes to caddy.
 nginx:
-  enabled: true
+  enabled: false
 
 caddy:
   enabled: true
@@ -112,7 +112,7 @@ caddy:
   image:
     repository: caddy
     pullPolicy: IfNotPresent
-    tag: "2.10.2-alpine"
+    tag: "2.11.7-alpine"
   securityContext:
     runAsNonRoot: true
     capabilities:
