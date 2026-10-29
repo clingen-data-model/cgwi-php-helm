@@ -96,12 +96,7 @@ mysql:
     pullPolicy: IfNotPresent
     tag: "8.4.11"
 
-# Web servers in front of php-fpm. If both are enabled, the service routes to caddy.
-nginx:
-  enabled: false
-
 caddy:
-  enabled: true
   resources:
     requests:
       memory: 256Mi

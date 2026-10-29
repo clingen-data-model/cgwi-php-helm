@@ -2,7 +2,7 @@
 
 map "sts/app" as app #LightBlue {
     app => runs php-fpm
-    nginx => handles static files, delegates php to **app**
+    caddy => handles static files, delegates php to **app**
     scheduler => runs cron jobs
     queue => runs queue jobs
 }
